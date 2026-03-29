@@ -1,0 +1,154 @@
+---
+title: "Informe de las tres casos Actualización de Creencias con Nueva Evidencia"
+author: "Estalyn Duchi"
+date: "2026-03-26"
+output:
+  html_document:
+    df_print: paged
+  pdf_document:
+    latex_engine: xelatex
+fontsize: 12pt
+geometry: margin=1in
+header-includes: \usepackage{amsmath}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+# Resumen
+
+El presente estudio analiza la aplicación del teorema de Bayes en la actualización de probabilidades bajo incertidumbre en tres contextos: diagnóstico médico, control de calidad y toma de decisiones empresariales. Se demuestra que la incorporación de nueva evidencia permite mejorar significativamente la precisión de las inferencias y optimizar decisiones. Asimismo, se evalúa el valor económico de la información mediante indicadores como el Valor Esperado de la Información Perfecta (VEIP) y el Valor Esperado de la Información Imperfecta (VEII).
+
+**Palabras clave**: inferencia bayesiana, toma de decisiones, incertidumbre, valor esperado, probabilidad.
+
+# Introducción
+
+La teoría bayesiana permite actualizar probabilidades iniciales (a priori) cuando se dispone de nueva evidencia, generando probabilidades posteriores más precisas. Este enfoque es ampliamente utilizado en contextos médicos, industriales y empresariales para mejorar la toma de decisiones bajo incertidumbre.
+
+En el presente informe se analizan tres casos aplicados: diagnóstico médico, control de calidad y toma de decisiones empresariales, integrando el enfoque bayesiano con criterios de valor esperado.
+
+# Metodología
+
+Se utilizó el enfoque bayesiano para actualizar probabilidades a partir de evidencia observada. Además, en el tercer caso se incorporaron criterios de decisión basados en:
+
+Valor Monetario Esperado (VME)
+
+Valor Esperado de Información Perfecta (VEIP)
+
+Valor Esperado de Información Imperfecta (VEII)
+
+## Caso Nª 1
+```{r}
+# ====================================================
+# BAYES — Caso 1: Diagnóstico Médico
+# ====================================================
+
+# Datos del problema
+prevalencia  <- 0.01   # Prior: 1% de la población tiene cáncer
+sensibilidad <- 0.80   # P(Positivo | Cáncer)
+falso_pos    <- 0.096  # P(Positivo | No Cáncer)
+```
+
+**Empezamos adra formarto a la tabla de contigencia**
+
+Creamos un vector de probabilidades a priori (antes de ver la evidencia).
+
+Define las verosimilitudes, es decir, probabilidades condicionales de observar la evidencia.
+
+```{r}
+# Tabla Bayesiana
+estados <- c("Cáncer", "No Cáncer")
+prior   <- c(prevalencia, 1 - prevalencia)
+likel   <- c(sensibilidad, falso_pos)   # P(Positivo | estado)
+
+# Paso 1-3: conjuntas
+conjunta <- prior * likel
+
+# Paso 4: probabilidad marginal de la evidencia
+P_positivo <- sum(conjunta)
+cat("P(Positivo) =", round(P_positivo, 4), "\n")
+
+# Paso 5: posteriors
+posterior <- conjunta / P_positivo
+```
+
+**Podemos visualizar la tabla ya constrida**
+
+```{r}
+# Tabla completa
+tabla <- data.frame(
+  Estado      = estados,
+  Prior       = prior,
+  Verosimil   = likel,
+  Conjunta    = conjunta,
+  Posterior   = round(posterior, 4)
+)
+print(tabla)
+```
+
+```{r}
+cat("\n→ P(Cáncer | Positivo) =", round(posterior[1] * 100, 1), "%\n")
+cat("→ Aunque la prueba es positiva, solo el",
+    round(posterior[1] * 100, 1), "% tiene cáncer.\n")
+```
+
+**Un ejemplo grafica  cómo cambia la posterior con distintas prevalencias**
+
+
+```{r}
+# Visualización: cómo cambia la posterior con distintas prevalencias
+library(ggplot2)
+prevalencias <- seq(0.001, 0.20, 0.001)
+post_cancer <- sapply(prevalencias, function(p) {
+  conj <- c(sensibilidad * p, falso_pos * (1 - p))
+  conj[1] / sum(conj)
+})
+
+df_prev <- data.frame(prevalencia = prevalencias, posterior = post_cancer)
+
+ggplot(df_prev, aes(x = prevalencia * 100, y = posterior * 100)) +
+  geom_line(color = "#3a7fbd", linewidth = 1.2) +
+  geom_point(data = data.frame(x = 1, y = posterior[1] * 100),
+             aes(x = x, y = y), color = "#b0305a", size = 4) +
+  annotate("text", x = 2, y = posterior[1] * 100,
+           label = paste0("Prevalencia 1%\nP(Cáncer|+) = ",
+                           round(posterior[1] * 100, 1), "%"),
+           hjust = 0, color = "#b0305a", size = 3.5) +
+  labs(title = "Efecto de la Prevalencia sobre el Valor Predictivo Positivo",
+       subtitle = "Mamografía: Sensibilidad=80%, Tasa FP=9.6%",
+       x = "Prevalencia (%)", y = "P(Cáncer | Positivo) (%)") +
+  theme_minimal() +
+  scale_x_continuous(labels = function(x) paste0(x, "%")) +
+  scale_y_continuous(labels = function(x) paste0(x, "%"))
+```
+
+**Resultados principales**
+
+Probabilidad previa de cáncer: 1%
+
+Probabilidad posterior dado resultado positivo: ≈ 7.8%
+
+**Interpretación**
+
+Aunque la prueba diagnóstica presenta buena sensibilidad (80%), el bajo nivel de prevalencia provoca que la probabilidad real de padecer cáncer, incluso con resultado positivo, sea relativamente baja.
+
+Esto se debe a la presencia de falsos positivos (9.6%), lo que afecta significativamente el valor predictivo positivo.
+
+**Conclusión y decisión**
+
+Un resultado positivo no es suficiente para confirmar la enfermedad.
+Se recomienda:
+
+Realizar pruebas confirmatorias adicionales.
+
+Evitar decisiones médicas invasivas basadas en un único resultado.
+
+Insight clave
+
+La prevalencia de la enfermedad es un factor determinante en la interpretación de pruebas diagnósticas.
+
